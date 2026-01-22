@@ -32,8 +32,9 @@ void HavocSpace::Havoc::Init( int argc, char** argv )
 
 
     if ( Arguments.exist( "debug" ) ) {
+        HavocX::DebugMode = true;
         spdlog::set_level( spdlog::level::debug );
-        spdlog::debug( "Debug mode enabled" );
+        spdlog::debug( "Debug mode enabled - Connection troubleshooting active" );
     }
 
     if ( Arguments.exist( "config" ) ) {

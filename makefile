@@ -26,12 +26,12 @@ ts-cleanup:
 	@ rm -rf ./teamserver/.idea
 	@ rm -rf ./havoc
 
-# client building and cleanup targets 
-client-build: 
+# client building and cleanup targets
+client-build:
 	@ echo "[*] building client"
 	@ git submodule update --init --recursive
-	@ mkdir client/Build; cd client/Build; cmake ..
-	@ if [ -d "client/Modules" ]; then echo "Modules installed"; else git clone https://github.com/HavocFramework/Modules client/Modules --single-branch --branch `git rev-parse --abbrev-ref HEAD`; fi
+	@ mkdir -p client/Build; cd client/Build; cmake ..
+	@ if [ -d "client/Modules" ]; then echo "Modules installed"; else git clone https://github.com/HavocFramework/Modules client/Modules --single-branch --branch main; fi
 	@ cmake --build client/Build -- -j 4
 
 client-cleanup:
@@ -67,65 +67,54 @@ macos-create-app:
 	mkdir -p "$$TEMP_APP/Contents/MacOS"; \
 	mkdir -p "$$TEMP_APP/Contents/Resources"; \
 	echo "[*] Creating launcher script..."; \
-	cat > "$$TEMP_APP/Contents/MacOS/$$APP_NAME" << 'EOF'; \
-#!/bin/bash
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export HAVOC_CLIENT_PATH="REPLACE_HAVOC_CLIENT_PATH"
-cd "$$HAVOC_CLIENT_PATH" || { \
-	osascript -e 'display dialog "Failed to change to Havoc client directory." buttons {"OK"} default button 1 with icon stop' \
-	exit 1; \
-}
-if [ ! -f "$$HAVOC_CLIENT_PATH/Havoc" ]; then \
-	osascript -e 'display dialog "Havoc executable not found. Please ensure Havoc is built." buttons {"OK"} default button 1 with icon stop' \
-	exit 1; \
-fi
-chmod +x "$$HAVOC_CLIENT_PATH/Havoc" 2>/dev/null
-exec "$$HAVOC_CLIENT_PATH/Havoc" "$$@" \
-EOF
-	sed -i '' "s|REPLACE_HAVOC_CLIENT_PATH|$$HAVOC_CLIENT_PATH|g" "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf '#!/bin/bash\n' > "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'DIR="$$( cd "$$( dirname "$${BASH_SOURCE[0]}" )" && pwd )"\n' >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'export HAVOC_CLIENT_PATH="%s"\n' "$$HAVOC_CLIENT_PATH" >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'cd "$$HAVOC_CLIENT_PATH" || { osascript -e '"'"'display dialog "Failed to change to Havoc client directory." buttons {"OK"} default button 1 with icon stop'"'"'; exit 1; }\n' >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'if [ ! -f "$$HAVOC_CLIENT_PATH/Havoc" ]; then osascript -e '"'"'display dialog "Havoc executable not found. Please ensure Havoc is built." buttons {"OK"} default button 1 with icon stop'"'"'; exit 1; fi\n' >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'chmod +x "$$HAVOC_CLIENT_PATH/Havoc" 2>/dev/null\n' >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
+	printf 'exec "$$HAVOC_CLIENT_PATH/Havoc" "$$@"\n' >> "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
 	chmod +x "$$TEMP_APP/Contents/MacOS/$$APP_NAME"; \
 	echo "[*] Creating Info.plist..."; \
-	cat > "$$TEMP_APP/Contents/Info.plist" << EOF \
-<?xml version="1.0" encoding="UTF-8"?>\
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\
-<plist version="1.0">\
-<dict>\
-    <key>CFBundleExecutable</key>\
-    <string>$$APP_NAME</string>\
-    <key>CFBundleIconFile</key>\
-    <string>AppIcon</string>\
-    <key>CFBundleIdentifier</key>\
-    <string>com.havoc.client</string>\
-    <key>CFBundleName</key>\
-    <string>$$APP_NAME</string>\
-    <key>CFBundleDisplayName</key>\
-    <string>$$APP_NAME Client</string>\
-    <key>CFBundlePackageType</key>\
-    <string>APPL</string>\
-    <key>CFBundleShortVersionString</key>\
-    <string>1.0.0</string>\
-    <key>CFBundleVersion</key>\
-    <string>1</string>\
-    <key>CFBundleSignature</key>\
-    <string>????</string>\
-    <key>LSMinimumSystemVersion</key>\
-    <string>10.12</string>\
-    <key>NSHighResolutionCapable</key>\
-    <true/>\
-    <key>NSSupportsAutomaticGraphicsSwitching</key>\
-    <true/>\
-    <key>LSApplicationCategoryType</key>\
-    <string>public.app-category.developer-tools</string>\
-    <key>NSRequiresAquaSystemAppearance</key>\
-    <false/>\
-    <key>LSEnvironment</key>\
-    <dict>\
-        <key>HAVOC_CLIENT_PATH</key>\
-        <string>$$HAVOC_CLIENT_PATH</string>\
-    </dict>\
-</dict>\
-</plist>\
-EOF
+	printf '<?xml version="1.0" encoding="UTF-8"?>\n' > "$$TEMP_APP/Contents/Info.plist"; \
+	printf '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '<plist version="1.0">\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '<dict>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleExecutable</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>%s</string>\n' "$$APP_NAME" >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleIconFile</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>AppIcon</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleIdentifier</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>com.havoc.client</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleName</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>%s</string>\n' "$$APP_NAME" >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleDisplayName</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>%s Client</string>\n' "$$APP_NAME" >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundlePackageType</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>APPL</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleShortVersionString</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>1.0.0</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleVersion</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>1</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>CFBundleSignature</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>????</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>LSMinimumSystemVersion</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>10.12</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>NSHighResolutionCapable</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <true/>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>NSSupportsAutomaticGraphicsSwitching</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <true/>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>LSApplicationCategoryType</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <string>public.app-category.developer-tools</string>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>NSRequiresAquaSystemAppearance</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <false/>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <key>LSEnvironment</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    <dict>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '        <key>HAVOC_CLIENT_PATH</key>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '        <string>%s</string>\n' "$$HAVOC_CLIENT_PATH" >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '    </dict>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '</dict>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
+	printf '</plist>\n' >> "$$TEMP_APP/Contents/Info.plist"; \
 	ICON_PATH=$$(find "$$HAVOC_CLIENT_PATH" "$$HAVOC_CLIENT_PATH/.." -name "Havoc.png" -o -name "havoc.png" 2>/dev/null | head -n 1); \
 	if [ -n "$$ICON_PATH" ] && [ -f "$$ICON_PATH" ]; then \
 		echo "[*] Found icon at: $$ICON_PATH"; \

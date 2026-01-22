@@ -63,7 +63,7 @@ Connector::Connector( Util::ConnectionInfo* ConnectionInfo )
         if ( HavocX::DebugMode ) {
             spdlog::debug( "[CONNECT] WebSocket disconnected" );
             spdlog::debug( "[CONNECT] Error string: {}", Socket->errorString().toStdString() );
-            spdlog::debug( "[CONNECT] Error code: {}", Socket->error() );
+            spdlog::debug( "[CONNECT] Error code: {}", static_cast<int>( Socket->error() ) );
         }
 
         MessageBox( "Teamserver error", Socket->errorString(), QMessageBox::Critical );
@@ -73,12 +73,12 @@ Connector::Connector( Util::ConnectionInfo* ConnectionInfo )
         Havoc::Exit();
     } );
 
-    /* Add state change monitoring for debug */
+    /* Add state change monitoring for debug - Qt 5.15 compatible */
     if ( HavocX::DebugMode ) {
         QObject::connect( Socket, &QWebSocket::stateChanged, this, [&]( QAbstractSocket::SocketState state )
         {
             const char* stateStr = "Unknown";
-            switch ( state ) {
+            switch ( static_cast<int>( state ) ) {
                 case QAbstractSocket::UnconnectedState: stateStr = "Unconnected"; break;
                 case QAbstractSocket::HostLookupState: stateStr = "HostLookup"; break;
                 case QAbstractSocket::ConnectingState: stateStr = "Connecting"; break;
@@ -90,9 +90,10 @@ Connector::Connector( Util::ConnectionInfo* ConnectionInfo )
             spdlog::debug( "[CONNECT] WebSocket state changed: {}", stateStr );
         } );
 
-        QObject::connect( Socket, &QWebSocket::errorOccurred, this, [&]( QAbstractSocket::SocketError error )
+        /* Use QWebSocket's error signal - Qt 5.15 compatible */
+        QObject::connect( Socket, static_cast<void (QWebSocket::*)(QAbstractSocket::SocketError)>(&QWebSocket::error), this, [&]( QAbstractSocket::SocketError error )
         {
-            spdlog::debug( "[CONNECT] WebSocket error occurred: {} - {}", error, Socket->errorString().toStdString() );
+            spdlog::debug( "[CONNECT] WebSocket error occurred: {} - {}", static_cast<int>( error ), Socket->errorString().toStdString() );
         } );
 
         QObject::connect( Socket, &QWebSocket::sslErrors, this, [&]( const QList<QSslError>& errors )
